@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments & Dependencies
+.venv/
+venv/
+env/
+ENV/
+
+# Reinforcement Learning Artifacts (Crucial)
+*.zip
+*.pt
+*.pth
+*.pkl
+logs/
+tensorboard/
+results/
+checkpoint/
+ppo_lunar_tensorboard/
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
