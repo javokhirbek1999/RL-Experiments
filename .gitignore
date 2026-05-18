@@ -20,6 +20,7 @@ results/
 checkpoint/
 ppo_lunar_tensorboard/
 ppo_bipedal_tensorboard/
+ppo_frozen_lake_tensorboard/
 
 # IDEs and OS
 .vscode/
