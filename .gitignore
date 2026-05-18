@@ -21,6 +21,7 @@ checkpoint/
 ppo_lunar_tensorboard/
 ppo_bipedal_tensorboard/
 ppo_frozen_lake_tensorboard/
+ppo_taxi_tensorboard/
 
 # IDEs and OS
 .vscode/

@@ -9,29 +9,9 @@ import pickle
 from tqdm.auto import tqdm
 
 
-class CustomRewardWrapper(gym.Wrapper):
-    def step(self, action):
-        # 1. Call the original environment's step function
-        next_state, reward, terminated, truncated, info = self.env.step(action)
-        
-        # If reward is 0.0 and terminated is True, the agent fell in a hole
-        if reward == 0.0 and terminated:
-            reward = -1.0  # Big penalty for falling in a hole
-            
-        elif reward == 1.0:
-            reward = 10.0  # Bigger reward for winning
-            
-        else:
-            reward = -0.01 # Small living penalty to encourage speed
-            
-        # 3. Return the modified step variables
-        return next_state, reward, terminated, truncated, info
-
-
-
 # Training parameters
-n_training_episodes = 1000000  # Total training episodes
-learning_rate = 5e-4          # Learning rate
+n_training_episodes = 500000  # Total training episodes
+learning_rate = 1e-3          # Learning rate
 
 # Evaluation parameters
 n_eval_episodes = 100        # Total number of test episodes
@@ -48,15 +28,12 @@ min_epsilon = 0.05            # Minimum exploration probability
 decay_rate = 0.0005            # Exponential decay rate for exploration prob
 
 
-base_env = gym.make('FrozenLake-v1', map_name='4x4', is_slippery=False, render_mode='rgb_array')
-
-env = CustomRewardWrapper(base_env)
+env = gym.make('Taxi-v3', render_mode='rgb_array')
 
 # We create our environment with gym.make("<name_of_the_environment>")- `is_slippery=False`: The agent always moves in the intended direction due to the non-slippery nature of the frozen lake (deterministic).
 print("_____OBSERVATION SPACE_____ \n")
 print("Observation Space", env.observation_space)
 print("Sample observation", env.observation_space.sample()) # Get a random observation
-
 
 print("\n _____ACTION SPACE_____ \n")
 print("Action Space Shape", env.action_space.n)
@@ -65,14 +42,12 @@ print("Action Space Sample", env.action_space.sample()) # Take a random action
 state_space = env.observation_space.n
 action_sapce = env.action_space.n
 
-
 # Let's create our Qtable of size (state_space, action_space) and initialized each values at 0 using np.zeros. np.zeros needs a tuple (a,b)
 def initialize_q_table():
-    Qtable = np.zeros(shape=(state_space,action_sapce))
+    Qtable = np.zeros(shape=(state_space, action_sapce))
     return Qtable
 
-
-Qtable_frozenlake = initialize_q_table()
+Qtable_taxi = initialize_q_table()
 
 
 def greedy_policy(Qtable, state):
@@ -86,7 +61,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
     random_num = random.uniform(0,1)
     # if random_num > greater than epsilon --> exploitation
     if random_num > epsilon:
-        # Take the action with the highest value given a state
+        # Take the action with the hiest value given a state
         # np.argmax can be useful here
         action = greedy_policy(Qtable, state)
     # else -> exploration
@@ -99,40 +74,39 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
 
 def train(Qtable):
     for episode in tqdm(range(n_training_episodes)):
-        # Reduce epsilon (because we need less and less exploration)
+        # Reduce t epsilon (because we need less and less exploration)
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate*episode)
-        # Reset the environment
         current_state, info = env.reset()
 
-        step = 0
-        terminated = False
-        truncated = False
+        terminated, truncated = False, False
 
         # Repeat
         for step in range(max_steps):
             # Choose the action At using epsilon greedy policy
             action = epsilon_greedy_policy(Qtable, current_state, epsilon)
 
-            # Take action At and observe Rt+1 and St+1
+
+            # Take the action At and observe Rt+1 and St+1
             # Take the action (a) and observe the outcome state(s') and reward (r)
             new_state, reward, terminated, truncated, info = env.step(action)
 
-            # Update Q(s,a):= Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
+            # Update Q(s,a) := Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
             Qtable[current_state][action] = Qtable[current_state][action] + learning_rate * (reward + gamma * np.max(Qtable[new_state]) - Qtable[current_state][action])
 
             # If terminated or truncated finish the episode
-            if terminated or truncated:
+            if terminated or truncated: 
                 break
 
-            # Our next state is the new state
+
+            # Out next state is the new state
             current_state = new_state
         
     
     return Qtable
 
-Qtable_frozenlake = train(Qtable_frozenlake)
-print(Qtable_frozenlake)
 
+Qtable_taxi = train(Qtable_taxi)
+print(Qtable_taxi)
 
 def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
     """
@@ -171,10 +145,11 @@ def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
 
 
 # 1. Create a new environment instance with human rendering mode
-eval_env = gym.make(env_id, render_mode='human')
+eval_env = gym.make('Taxi-v3', render_mode='human')
 
 
 # Evaluate our Agent
-mean_reward, std_reward = evaluate_agent(eval_env, max_steps, n_eval_episodes, Qtable_frozenlake, eval_seed)
+mean_reward, std_reward = evaluate_agent(eval_env, max_steps, n_eval_episodes, Qtable_taxi, eval_seed)
 print(f"Mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+
 eval_env.close()
